@@ -14,7 +14,7 @@ app.post('/', async (req, res) => {
 
     if (userId) {
         try {
-            // Menggunakan fetch bawaan Node.js (tanpa perlu install axios)
+            // Mengambil data asset publik dari inventory Roblox via RoProxy (Kategori Hats / Aksesoris)
             const url = `https://inventory.roproxy.com/v2/users/${userId}/inventory/8?limit=100`;
             const response = await fetch(url);
             const data = await response.json();
@@ -23,12 +23,14 @@ app.post('/', async (req, res) => {
                 const items = data.data;
                 totalItems = items.length;
 
+                // Hitung otomatis berdasarkan item publik yang ditemukan
                 items.forEach(item => {
-                    if (item.isLimited || item.isLimitedUnique) {
+                    const isLimited = item.isLimited || item.isLimitedUnique || false;
+                    if (isLimited) {
                         totalLimited += 1;
-                        totalValue += 1000000;
+                        totalValue += 1000000; // Estimasi value item limited
                     } else {
-                        totalValue += 25000;
+                        totalValue += 25000;  // Estimasi item biasa
                     }
                 });
             }
