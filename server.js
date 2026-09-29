@@ -8,11 +8,12 @@ app.post('/', (req, res) => {
     const playerData = req.body;
     console.log("Data Player diterima dari Roblox:", playerData);
     
-    // Kirim respon sukses kembali ke Roblox
-    res.status(200).json({ status: "success", message: "Data diterima!" });
+    // Set header eksplisit agar Roblox tidak bingung (ServerProtocolError)
+    res.setHeader('Content-Type', 'application/json');
+    res.status(200).send(JSON.stringify({ status: "success", message: "Data diterima!" }));
 });
 
-// Menangani test GET biasa agar tidak error "Cannot GET /"
+// Menangani test GET biasa
 app.get('/', (req, res) => {
     res.send("Roblox Backend is running!");
 });
