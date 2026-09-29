@@ -14,16 +14,14 @@ app.post('/', async (req, res) => {
 
     if (userId) {
         try {
-            // Daftar Kategori Asset Roblox yang ingin dicek sekaligus:
-            // 8 = Hats, 41 = Hair, 18 = Face, 19 = Neck, 42 = Shoulders, 43 = Front, 44 = Back, 45 = Waist
-            const assetTypes = [8, 41, 18, 19, 42, 43, 44, 45];
+            const assetTypes = [8, 41, 11, 12]; // Hats, Hair, Shirt, Pants
             
             for (const assetTypeId of assetTypes) {
                 try {
                     const controller = new AbortController();
                     const timeoutId = setTimeout(() => controller.abort(), 2000);
 
-                    const url = `https://inventory.roproxy.com/v2/users/${userId}/inventory/${assetTypeId}?limit=50`;
+                    const url = `https://inventory.roproxy.com/v2/users/${userId}/inventory/${assetTypeId}?limit=100`;
                     const response = await fetch(url, { signal: controller.signal });
                     clearTimeout(timeoutId);
 
@@ -31,21 +29,21 @@ app.post('/', async (req, res) => {
                         const data = await response.json();
                         if (data && data.data) {
                             const items = data.data;
-                            totalItems += items.length; // Menambahkan jumlah item dari setiap kategori
+                            totalItems += items.length; // Item gratis tetap bertambah ke total item
 
                             items.forEach(item => {
                                 const isLimited = item.isLimited || item.isLimitedUnique || false;
+                                
+                                // HANYA ITEM LIMITED YANG MENAMBAH VALUE. Item gratis/biasa value-nya 0.
                                 if (isLimited) {
                                     totalLimited += 1;
-                                    totalValue += 1000000;
-                                } else {
-                                    totalValue += 10000; // Harga estimasi item biasa/gratisan
+                                    totalValue += 1000000; // Sesuaikan perkiraan harga item limited
                                 }
                             });
                         }
                     }
                 } catch (err) {
-                    // Abaikan jika salah satu kategori gagal/timeout, lanjut ke kategori berikutnya
+                    console.log(`Gagal ambil kategori ${assetTypeId}:`, err.message);
                 }
             }
         } catch (error) {
