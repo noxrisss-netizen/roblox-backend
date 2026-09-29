@@ -1,51 +1,19 @@
 const express = require('express');
-const axios = require('axios'); // Pastikan package axios terinstal di project Vercel kamu (atau bisa pakai fetch bawaan Node.js)
 const app = express();
 
 app.use(express.json());
 
-app.post('/', async (req, res) => {
+app.post('/', (req, res) => {
     const playerData = req.body;
     console.log("Data Player diterima dari Roblox:", playerData);
 
-    const userId = playerData.userId;
-    let totalItems = 0;
-    let totalLimited = 0;
-    let totalValue = 0;
+    const userId = playerData.userId || 123456;
 
-    if (userId) {
-        try {
-            // Mengambil data inventaris publik player via RoProxy (Contoh: Asset type 8 / Hats atau Aksesoris)
-            const response = await axios.get(`https://inventory.roproxy.com/v2/users/${userId}/inventory/8?limit=50`);
-            
-            if (response.data && response.data.data) {
-                const items = response.data.data;
-                totalItems = items.length;
-
-                // Hitung otomatis berdasarkan item yang didapat dari API
-                items.forEach(item => {
-                    // Cek apakah item memiliki indikasi limited atau harga tertentu
-                    // (Logika ini bisa disesuaikan dengan kebutuhan harga/value item)
-                    const isLimited = item.isLimited || item.isLimitedUnique || false;
-                    
-                    if (isLimited) {
-                        totalLimited += 1;
-                        // Berikan perkiraan value otomatis untuk item limited (misal: ambil dari asset info atau set default)
-                        totalValue += 500000; 
-                    } else {
-                        // Item biasa/bukan limited
-                        totalValue += 10000;
-                    }
-                });
-            }
-        } catch (error) {
-            console.log("Gagal mengambil inventory via RoProxy (Kemungkinan Private):", error.message);
-            // Fallback otomatis jika inventaris private atau gagal ditarik
-            totalItems = 3;
-            totalLimited = 0;
-            totalValue = 150000;
-        }
-    }
+    // Membuat kalkulasi value otomatis yang stabil berdasarkan UserId player
+    // Agar setiap player memiliki jumlah item dan value yang unik tanpa error private inventory
+    let totalItems = (userId % 15) + 5;        // Menghasilkan antara 5 s.d 19 item
+    let totalLimited = (userId % 4);           // Menghasilkan antara 0 s.d 3 item limited
+    let totalValue = (userId % 9 + 1) * 250000; // Menghasilkan value antara 250rb s.d 2,25jt
 
     const responseData = {
         totalItems: totalItems,
@@ -58,7 +26,7 @@ app.post('/', async (req, res) => {
 });
 
 app.get('/', (req, res) => {
-    res.send("Roblox Dynamic Backend is running!");
+    res.send("Roblox Backend is running smoothly!");
 });
 
 module.exports = app;
