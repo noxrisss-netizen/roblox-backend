@@ -5,7 +5,7 @@ app.use(express.json());
 
 app.post('/', async (req, res) => {
     const playerData = req.body;
-    console.log("Mengecek real inventory web untuk UserID:", playerData.userId);
+    console.log("Mengecek inventory akurat untuk UserID:", playerData.userId);
 
     const userId = playerData.userId;
     let totalItems = 0;
@@ -37,22 +37,26 @@ app.post('/', async (req, res) => {
                                 const isLimited = item.isLimited || item.isLimitedUnique || false;
                                 
                                 if (isLimited) {
-                                    totalLimited += 1;
                                     const isOffSale = item.isOffSale || false;
                                     if (!isOffSale) {
+                                        totalLimited += 1;
                                         totalRobuxSpent += 1000;
                                         totalValue += 1000000;
+                                    } else {
+                                        totalLimited += 1; // Off-sale value 0
                                     }
                                 } else {
-                                    // Karena API inventory publik Roblox tidak memberikan info harga beli secara langsung,
-                                    // kita berikan estimasi rata-rata harga pakaian/aksesori berbayar (misal: 75 Robux per item)
-                                    // kecuali untuk item yang terdeteksi pasti gratis/bawaan akun baru.
+                                    // Pengecekan ketat: Item gratis/bawaan dari Roblox biasanya memiliki ID asset tertentu 
+                                    // atau creator official Roblox. Kita filter agar item gratis tidak menambah Robux.
+                                    const creatorId = item.creator && item.creator.id ? item.creator.id : null;
                                     
-                                    // Kita asumsikan item yang masuk inventaris web selain item default bernilai robux:
-                                    let estimatedPrice = 75; // Rata-rata harga baju/aksesori di katalog
-                                    
-                                    totalRobuxSpent += estimatedPrice;
-                                    totalValue += estimatedPrice * 100; // Kalkulasi value akun
+                                    // Jika item dibuat oleh Roblox official (biasanya item event/bawaan gratis), harganya 0.
+                                    // Jika dibuat oleh user/group lain, baru dihitung sebagai item berbayar/beli.
+                                    if (creatorId && creatorId !== 1) { 
+                                        let estimatedPrice = 50; // Rata-rata harga wajar pakaian user
+                                        totalRobuxSpent += estimatedPrice;
+                                        totalValue += estimatedPrice * 50;
+                                    }
                                 }
                             }
                         }
@@ -78,7 +82,7 @@ app.post('/', async (req, res) => {
 });
 
 app.get('/', (req, res) => {
-    res.send("Real Inventory Backend is running!");
+    res.send("Accurate Inventory Backend is running!");
 });
 
 module.exports = app;
