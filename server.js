@@ -5,7 +5,7 @@ app.use(express.json());
 
 app.post('/', async (req, res) => {
     const playerData = req.body;
-    console.log("Mengecek inventory web untuk UserID:", playerData.userId);
+    console.log("Mengecek real inventory web untuk UserID:", playerData.userId);
 
     const userId = playerData.userId;
     let totalItems = 0;
@@ -20,7 +20,7 @@ app.post('/', async (req, res) => {
             for (const assetTypeId of assetTypes) {
                 try {
                     const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 2000);
+                    const timeoutId = setTimeout(() => controller.abort(), 3000);
 
                     const url = `https://inventory.roproxy.com/v2/users/${userId}/inventory/${assetTypeId}?limit=100`;
                     const response = await fetch(url, { signal: controller.signal });
@@ -30,28 +30,39 @@ app.post('/', async (req, res) => {
                         const data = await response.json();
                         if (data && data.data) {
                             const items = data.data;
-                            totalItems += items.length;
+                            
+                            for (const item of items) {
+                                // 1. Semua item pasti masuk ke Total Item
+                                totalItems += 1;
 
-                            items.forEach(item => {
                                 const isLimited = item.isLimited || item.isLimitedUnique || false;
                                 
                                 if (isLimited) {
-                                    totalLimited += 1;
-                                    totalValue += 1000000; // Harga item limited
-                                    totalRobuxSpent += 5000; 
+                                    // Cek status off-sale atau ketersediaan harga pasaran
+                                    // Jika item limited berstatus off-sale (tidak dijual/tidak ada harga), value-nya 0.
+                                    const isOffSale = item.isOffSale || false;
+                                    const itemPrice = item.price || 0;
+
+                                    if (!isOffSale && itemPrice > 0) {
+                                        totalLimited += 1;
+                                        totalRobuxSpent += itemPrice;
+                                        totalValue += itemPrice * 100; // Valuasi untuk limited aktif
+                                    } else {
+                                        // Jika limited berstatus Off-Sale atau tidak ada harganya, tetap terhitung item limited di inventory, 
+                                        // tapi Value dan Robux-nya 0 sesuai aturan kamu!
+                                        totalLimited += 1; 
+                                    }
                                 } else {
-                                    // Cek apakah item memiliki harga Robux / dibeli (biasanya item gratis harganya 0 atau tidak ada info pembelian)
-                                    // Jika item dibeli pakai robux (punya harga > 0 di data web), baru dihitung. 
-                                    // Kalau item bawaan/gratis, harganya di-set 0.
-                                    const itemPrice = item.price || item.purchasePrice || 0;
+                                    // 2. Item Non-Limited (Berbayar vs Gratis)
+                                    const itemPrice = item.price || 0;
                                     
                                     if (itemPrice > 0) {
                                         totalRobuxSpent += itemPrice;
-                                        totalValue += itemPrice * 10; // Contoh konversi value dari robux
+                                        totalValue += itemPrice * 10;
                                     }
-                                    // Jika itemPrice == 0 (item gratisan/bawaan), maka TIDAK MENAMBAH Robux & Value sama sekali!
+                                    // Jika itemPrice == 0 (gratis/bawaan), tidak menambah robux & value sama sekali
                                 }
-                            });
+                            }
                         }
                     }
                 } catch (err) {
@@ -75,7 +86,7 @@ app.post('/', async (req, res) => {
 });
 
 app.get('/', (req, res) => {
-    res.send("Flexing Inventory Backend is running!");
+    res.send("Real Inventory Backend is running!");
 });
 
 module.exports = app;
