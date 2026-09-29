@@ -10,7 +10,7 @@ app.post('/', async (req, res) => {
     const userId = playerData.userId;
     let totalItems = 0;
     let totalLimited = 0;
-    let totalRobuxSpent = 0; // Total perkiraan Robux yang dihabiskan untuk beli item
+    let totalRobuxSpent = 0;
     let totalValue = 0;
 
     if (userId) {
@@ -38,17 +38,18 @@ app.post('/', async (req, res) => {
                                 if (isLimited) {
                                     totalLimited += 1;
                                     totalValue += 1000000; // Harga item limited
-                                    totalRobuxSpent += 5000; // Dianggap item limited bernilai Robux tinggi
+                                    totalRobuxSpent += 5000; 
                                 } else {
-                                    // Cek apakah ini item berbayar (biasanya punya harga asset, atau kita estimasikan)
-                                    // Jika item dibeli pakai Robux (bukan item gratis/0 robux)
-                                    // Di sini kita buat aturan: jika asset memiliki indikasi dibeli / bukan item event gratis mutlak:
-                                    // Kita asumsikan item non-limited berbayar menyumbang sekitar 50-100 Robux per item.
-                                    // Kalau mau murni 0 untuk item gratis total, bisa diatur lewat pengecekan harga aslinya.
+                                    // Cek apakah item memiliki harga Robux / dibeli (biasanya item gratis harganya 0 atau tidak ada info pembelian)
+                                    // Jika item dibeli pakai robux (punya harga > 0 di data web), baru dihitung. 
+                                    // Kalau item bawaan/gratis, harganya di-set 0.
+                                    const itemPrice = item.price || item.purchasePrice || 0;
                                     
-                                    // Contoh estimasi sederhana untuk item yang dibeli pakai robux:
-                                    totalRobuxSpent += 75; // Rata-rata harga baju/aksesori robux
-                                    totalValue += 15000;
+                                    if (itemPrice > 0) {
+                                        totalRobuxSpent += itemPrice;
+                                        totalValue += itemPrice * 10; // Contoh konversi value dari robux
+                                    }
+                                    // Jika itemPrice == 0 (item gratisan/bawaan), maka TIDAK MENAMBAH Robux & Value sama sekali!
                                 }
                             });
                         }
@@ -65,7 +66,7 @@ app.post('/', async (req, res) => {
     const responseData = {
         totalItems: totalItems,
         totalLimited: totalLimited,
-        totalRobux: totalRobuxSpent, // Sesuai dengan label "Total Robux" di GUI kamu
+        totalRobux: totalRobuxSpent,
         totalValue: totalValue
     };
 
