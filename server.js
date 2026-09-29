@@ -1,5 +1,4 @@
 const express = require('express');
-const axios = require('axios');
 const app = express();
 
 app.use(express.json());
@@ -15,28 +14,26 @@ app.post('/', async (req, res) => {
 
     if (userId) {
         try {
-            // Mengambil data asset publik dari inventory Roblox via RoProxy
-            // Menggunakan asset type 8 (Hats/Aksesoris kepala yang sering dipakai flexing)
+            // Menggunakan fetch bawaan Node.js (tanpa perlu install axios)
             const url = `https://inventory.roproxy.com/v2/users/${userId}/inventory/8?limit=100`;
-            const response = await axios.get(url);
+            const response = await fetch(url);
+            const data = await response.json();
 
-            if (response.data && response.data.data) {
-                const items = response.data.data;
+            if (data && data.data) {
+                const items = data.data;
                 totalItems = items.length;
 
-                // Hitung item limited atau estimasi berdasarkan jumlah item unik mereka
                 items.forEach(item => {
                     if (item.isLimited || item.isLimitedUnique) {
                         totalLimited += 1;
-                        totalValue += 1000000; // Estimasi value untuk item limited
+                        totalValue += 1000000;
                     } else {
-                        totalValue += 25000;  // Estimasi item biasa
+                        totalValue += 25000;
                     }
                 });
             }
         } catch (error) {
-            console.log("Inventory diset Private atau gagal diakses:", error.message);
-            // Fallback jika inventory player di-private di web profil mereka
+            console.log("Inventory private atau gagal diakses:", error.message);
             totalItems = 0;
             totalLimited = 0;
             totalValue = 0;
