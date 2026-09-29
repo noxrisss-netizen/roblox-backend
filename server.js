@@ -43,19 +43,21 @@ app.post('/', async (req, res) => {
                                         totalRobuxSpent += 1000;
                                         totalValue += 1000000;
                                     } else {
-                                        totalLimited += 1; // Off-sale value 0
+                                        totalLimited += 1;
                                     }
                                 } else {
-                                    // Pengecekan ketat: Item gratis/bawaan dari Roblox biasanya memiliki ID asset tertentu 
-                                    // atau creator official Roblox. Kita filter agar item gratis tidak menambah Robux.
-                                    const creatorId = item.creator && item.creator.id ? item.creator.id : null;
+                                    // Deteksi item: item bawaan/gratis standar biasanya memiliki ID asset di bawah angka tertentu 
+                                    // atau kita filter berdasarkan nama/aset dasar. 
+                                    // Untuk item berbayar player, kita berikan estimasi harga wajar per item baju/aksesori (misal 15-25 Robux) 
+                                    // agar akumulasinya pas dengan total pengeluaran top-up, bukan ribuan.
                                     
-                                    // Jika item dibuat oleh Roblox official (biasanya item event/bawaan gratis), harganya 0.
-                                    // Jika dibuat oleh user/group lain, baru dihitung sebagai item berbayar/beli.
-                                    if (creatorId && creatorId !== 1) { 
-                                        let estimatedPrice = 50; // Rata-rata harga wajar pakaian user
+                                    const assetId = item.assetId || item.id || 0;
+                                    
+                                    // Contoh filter: Asumsikan item dengan ID sangat kecil adalah item klasik gratis/bawaan
+                                    if (assetId > 10000000) { 
+                                        let estimatedPrice = 20; // Rata-rata harga per item baju/celana user
                                         totalRobuxSpent += estimatedPrice;
-                                        totalValue += estimatedPrice * 50;
+                                        totalValue += estimatedPrice * 100;
                                     }
                                 }
                             }
