@@ -14,37 +14,42 @@ app.post('/', async (req, res) => {
 
     if (userId) {
         try {
-            // Gunakan AbortController dengan batas waktu 3 detik agar tidak timeout di Vercel
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 3000);
+            // Daftar Kategori Asset Roblox yang ingin dicek sekaligus:
+            // 8 = Hats, 41 = Hair, 18 = Face, 19 = Neck, 42 = Shoulders, 43 = Front, 44 = Back, 45 = Waist
+            const assetTypes = [8, 41, 18, 19, 42, 43, 44, 45];
+            
+            for (const assetTypeId of assetTypes) {
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 2000);
 
-            const url = `https://inventory.roproxy.com/v2/users/${userId}/inventory/8?limit=50`;
-            const response = await fetch(url, { signal: controller.signal });
-            clearTimeout(timeoutId);
+                    const url = `https://inventory.roproxy.com/v2/users/${userId}/inventory/${assetTypeId}?limit=50`;
+                    const response = await fetch(url, { signal: controller.signal });
+                    clearTimeout(timeoutId);
 
-            if (response.ok) {
-                const data = await response.json();
-                if (data && data.data) {
-                    const items = data.data;
-                    totalItems = items.length;
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data && data.data) {
+                            const items = data.data;
+                            totalItems += items.length; // Menambahkan jumlah item dari setiap kategori
 
-                    items.forEach(item => {
-                        const isLimited = item.isLimited || item.isLimitedUnique || false;
-                        if (isLimited) {
-                            totalLimited += 1;
-                            totalValue += 1000000;
-                        } else {
-                            totalValue += 25000;
+                            items.forEach(item => {
+                                const isLimited = item.isLimited || item.isLimitedUnique || false;
+                                if (isLimited) {
+                                    totalLimited += 1;
+                                    totalValue += 1000000;
+                                } else {
+                                    totalValue += 10000; // Harga estimasi item biasa/gratisan
+                                }
+                            });
                         }
-                    });
+                    }
+                } catch (err) {
+                    // Abaikan jika salah satu kategori gagal/timeout, lanjut ke kategori berikutnya
                 }
             }
         } catch (error) {
-            console.log("Gagal/Timeout mengambil inventory:", error.message);
-            // Nilai fallback ringan agar server tidak crash dan tetap mengirim JSON valid
-            totalItems = 3;
-            totalLimited = 0;
-            totalValue = 50000;
+            console.log("Gagal total mengambil inventory:", error.message);
         }
     }
 
